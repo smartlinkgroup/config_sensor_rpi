@@ -1,0 +1,8 @@
+
+RPi.GPIO
+spidev
+RTIMU
+paho-mqtt
+hx711v0_5_1
+numpy
+matplotlib
