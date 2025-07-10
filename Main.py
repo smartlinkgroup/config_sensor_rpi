@@ -1,4 +1,4 @@
-from string import Template
+\from string import Template
 import RPi.GPIO as GPIO
 import time
 #from flask import logging
@@ -21,6 +21,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_publish(client, userdata, mid):
     print("Mensaje publicado con ID: " + str(mid))
+    print("Hola mundo")
 
 
 # Configuración MQTT
