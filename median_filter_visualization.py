@@ -5,7 +5,6 @@ class Node:
 
 class MedianFilter:
     STOPPER = 0
-
     def __init__(self, window_size):
         self.window_size = window_size
         self.buffer = [Node() for _ in range(window_size)]
@@ -17,7 +16,7 @@ class MedianFilter:
         self.bigger = Node(0)
         self.bigger.next = self.smaller
 
-    def median_filter(self, value):
+    def filter(self, value):
         if value == self.STOPPER:
             value += 1
 
@@ -33,3 +32,14 @@ class MedianFilter:
             return values_sorted[mid]
         else:
             return (values_sorted[mid - 1] + values_sorted[mid]) / 2
+
+class EMAFilter:
+    def __init__(self, alpha):
+        self.alpha = alpha
+        self.low_pass_filter = None
+    def filter(self, value):
+        if self.low_pass_filter is None:
+            self.low_pass_filter = value
+        else:
+            self.low_pass_filter = self.alpha * value + (1 - self.alpha) * self.low_pass_filter
+        return self.low_pass_filter
