@@ -1,0 +1,7 @@
+#entorno virtual
+sensorconf/
+RTIMULib-C/
+__pycache__/
+config_sensor_rpi.code-workspace
+.lgd-nfy0
+

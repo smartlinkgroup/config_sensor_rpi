@@ -68,7 +68,7 @@ class Inclinacion:
                 }
         return None
 
-class Temperatura:
+class TemperaturaAmbiente:
     def __init__(self, tmin, tmax, settings_file="RTIMULib"):
         self.settings = RTIMU.Settings(settings_file)
         self.imu = RTIMU.RTIMU(self.settings)

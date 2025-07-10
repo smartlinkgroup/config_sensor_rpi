@@ -8,19 +8,37 @@ class Vibracion:
         self.vmax = vmax
         self.measure_time = measure_time
         self.vibracion = 0
+        self._start_time = None
+        self._c1 = 0
+        self._last_state = 1
+        self._finished = False
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     def get(self):
-        c1 = 0
-        t = time.time()
-        while time.time() - t < self.measure_time:
-            if not GPIO.input(self.pin):
-                c1 += 1
-                time.sleep(0.05)
-        vib_raw = int(c1 / 40 * 100)
-        vib_esc = min(max(self.vmin, vib_raw), self.vmax)
-        self.vibracion = vib_esc
+        # Iniciar medición si no ha comenzado
+        if self._start_time is None or self._finished:
+            self._start_time = time.time()
+            self._c1 = 0
+            self._last_state = 1
+            self._finished = False
+            self.vibracion = 0
+        elapsed = time.time() - self._start_time
+        if elapsed < self.measure_time:
+            state = GPIO.input(self.pin)
+            if state == 0 and self._last_state == 1:
+                self._c1 += 1
+            self._last_state = state    
+            # Calcular vibración parcial
+            vib_raw = int(self._c1 / 40 * 100)
+            vib_esc = min(max(self.vmin, vib_raw), self.vmax)
+            self.vibracion = vib_esc
+        else:
+            if not self._finished:
+                vib_raw = int(self._c1 / 40 * 100)
+                vib_esc = min(max(self.vmin, vib_raw), self.vmax)
+                self.vibracion = vib_esc
+                self._finished = True
         return self.vibracion
 
     def cleanup(self):

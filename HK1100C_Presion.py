@@ -10,8 +10,8 @@ class Presion:
         self.spi_device = 0
         self.speed_hz = 1350000
         self.spi = spidev.SpiDev()
-        self.spi.open(self.spi_bus, self.spi_device)
-        self.spi.max_speed_hz = self.speed_hz
+        #self.spi.open(self.spi_bus, self.spi_device)
+        #self.spi.max_speed_hz = self.speed_hz
         self.presion = 0
 
     def get(self):
@@ -23,3 +23,7 @@ class Presion:
 
     def cleanup(self):
         self.spi.close()
+
+    def open(self):
+        self.spi.open(self.spi_bus, self.spi_device)
+        self.spi.max_speed_hz = self.speed_hz

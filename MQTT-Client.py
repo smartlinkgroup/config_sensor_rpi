@@ -1,13 +1,12 @@
 import paho.mqtt.client as mqtt
 
 class MQTTClient:
-    def __init__(self, broker, port, topic, username=None, password=None):
-        self.broker = broker
-        self.port = port
-        self.topic = topic
+    def __init__(self, broker, port, topic):
+        self.broker = "192.168.68.10"
+        self.port = 1883
+        self.topic = "sensores"
         self.client = mqtt.Client()
-        if username and password:
-            self.client.username_pw_set(username, password)
+        self.client.username_pw_set("lift-adm", "lift2025")
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
