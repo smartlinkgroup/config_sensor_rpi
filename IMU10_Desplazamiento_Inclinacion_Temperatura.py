@@ -1,29 +1,13 @@
 import RTIMU
-import time
+import math
 
-class IMU:
+
+class Desplazamiento:
     def __init__(self, settings_file="RTIMULib"):
         self.settings = RTIMU.Settings(settings_file)
         self.imu = RTIMU.RTIMU(self.settings)
-        if not self.imu.IMUInit():
-            raise RuntimeError("IMU no detectado")
-        self.imu.setSlerpPower(0.02)
-        self.imu.setGyroEnable(True)
-        self.imu.setAccelEnable(True)
-        self.imu.setCompassEnable(False)
-
-    def read(self):
-        if self.imu.IMURead():
-            data = self.imu.getIMUData()
-            return data
-        return None
-
-class Desplazamiento:
-    def __init__(self, dmin, dmax, settings_file="RTIMULib"):
-        self.settings = RTIMU.Settings(settings_file)
-        self.imu = RTIMU.RTIMU(self.settings)
-        self.dmin = dmin
-        self.dmax = dmax
+        self.dmin = -16 # Valor por defecto, se puede ajustar
+        self.dmax = 16  # Valor por defecto, se puede ajustar
         if not self.imu.IMUInit():
             raise RuntimeError("IMU no detectado")
         self.imu.setSlerpPower(0.02)
@@ -44,11 +28,11 @@ class Desplazamiento:
         return None
 
 class Inclinacion:
-    def __init__(self, imin, imax, settings_file="RTIMULib"):
+    def __init__(self, settings_file="RTIMULib"):
         self.settings = RTIMU.Settings(settings_file)
         self.imu = RTIMU.RTIMU(self.settings)
-        self.imin = imin
-        self.imax = imax
+        self.imin = -180 # Valor por defecto
+        self.imax = 180  # Valor por defecto
         if not self.imu.IMUInit():
             raise RuntimeError("IMU no detectado")
         self.imu.setSlerpPower(0.02)
@@ -62,29 +46,22 @@ class Inclinacion:
             if "fusionPose" in data:
                 roll, pitch, yaw = data["fusionPose"]
                 return {
-                    'roll': int(roll * 180 / 3.14159),
-                    'pitch': int(pitch * 180 / 3.14159),
-                    'yaw': int(yaw * 180 / 3.14159)
+                    'roll': int(math.degrees(roll)),
+                    'pitch': int(math.degrees(pitch)),
+                    'yaw': int(math.degrees(yaw))
                 }
         return None
 
 class TemperaturaAmbiente:
-    def __init__(self, tmin, tmax, settings_file="RTIMULib"):
+    def __init__(self, settings_file="RTIMULib"):
         self.settings = RTIMU.Settings(settings_file)
         self.imu = RTIMU.RTIMU(self.settings)
-        self.tmin = tmin
-        self.tmax = tmax
         if not self.imu.IMUInit():
             raise RuntimeError("IMU no detectado")
-        self.imu.setSlerpPower(0.02)
-        self.imu.setGyroEnable(True)
-        self.imu.setAccelEnable(True)
-        self.imu.setCompassEnable(False)
 
     def get(self):
         if self.imu.IMURead():
             data = self.imu.getIMUData()
             if "temperature" in data:
-                temp = data["temperature"]
-                return temp
+                return data["temperature"]
         return None

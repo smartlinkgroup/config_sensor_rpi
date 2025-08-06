@@ -1,5 +1,4 @@
 from hx711v0_5_1 import HX711
-import time
 
 class Carga:
 

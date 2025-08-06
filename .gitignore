@@ -1,5 +1,5 @@
 #entorno virtual
-sensorconf/
+sensorenv/
 RTIMULib-C/
 __pycache__/
 config_sensor_rpi.code-workspace
