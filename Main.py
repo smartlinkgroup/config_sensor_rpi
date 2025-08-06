@@ -5,6 +5,7 @@ import time
 import spidev
 import RTIMU
 import paho.mqtt.client as mqtt
+import os
 
 from HC020K_Emboladas import Emboladas
 from HK1100C_Presion import Presion
@@ -23,6 +24,13 @@ def on_publish(client, userdata, mid):
     print("Mensaje publicado con ID: " + str(mid))
     print("Hola mundo")
 
+def on_message(client, userdata, msg):
+    print("Mensaje recibido en el topic " + msg.topic + ": " + str(msg.payload))
+    global payloadSub
+    payloadSub = str(msg.payload)
+
+def on_subscribe(client, userdata, mid, granted_qos):
+    print("Suscrito con ID: " + str(mid) + ", QoS: " + str(granted_qos))
 
 # Configuración MQTT
 BROKER = "192.168.68.10"  # Cambia por la IP de tu broker
@@ -37,51 +45,74 @@ client.connect(BROKER, PORT, 10)
 
 client.on_connect = on_connect
 client.on_publish = on_publish
+client.on_message = on_message
+client.on_subscribe = on_subscribe
 
-# --- Configuración compacta de sensores y filtros ---
-SENSORES = {
-    'rpm': (Emboladas, {'pin': 13, 'emin': 0, 'emax': 20, 'muestras': 20, 'intervalo': 0.1}),
+
+
+# --- Configuración compacta de sensores  ---
+SENSORES = { 
+    'rpm': (Emboladas, {'pin': 16, 'emin': 0, 'emax': 20, 'muestras': 20, 'intervalo': 0.1}),
     'carga': (Carga, {'pins': {'data': 21, 'clk': 20}, 'cmin': 0, 'cmax': 5000}),
-    'vibracion': (Vibracion, {'pin': 17, 'vmin': 0, 'vmax': 100}),
+    'vibracion': (Vibracion, {'pin': 17, 'vmin': 0, 'vmax': 100,  'measure_time': 100}),
     'caudal': (Caudal, {'pin': 26, 'qmin': 0, 'qmax': 100}),
     #'gas': (Gas, {'channel': 0, 'gmin': 0, 'gmax': 1000, 'r0': 10000, 'rl': 10000}),
-    'temperatura_ambiente': (TemperaturaAmbiente, {'tmin': -40, 'tmax': 85}),
+    #'temperatura_ambiente': (TemperaturaAmbiente, {'tmin': -40, 'tmax': 85}),
     #'presion': (Presion, {'pin': {'data': 5}, 'pmin': 0, 'pmax': 100}),
-    'desplazamiento': (Desplazamiento, {'dmin': -16, 'dmax': 16}),
-    'inclinacion': (Inclinacion, {'imin': -180, 'imax': 180}),
+    #'desplazamiento': (Desplazamiento, {'dmin': -16, 'dmax': 16}),
+    #'inclinacion': (Inclinacion, {'imin': -180, 'imax': 180}),
+    'temperatura_ds18b20': (Temperatura, {'sensor_id': '28-xxxxxxxxxxxx', 'tmin': -55, 'tmax': 125}),  # Reemplaza con el ID real
 }
-WINDOW = 5
+
 ALPHA = 0.85
 
 sensores = {k: v[0](**v[1]) for k, v in SENSORES.items()}
-filtros_median = {k: MedianFilter(WINDOW) for k in SENSORES}
-filtros_ema = {k: EMAFilter(ALPHA) for k in SENSORES}
-
-COMP_DESPL = ['ax', 'ay', 'az']
-COMP_INCL = ['roll', 'pitch', 'yaw']
+# Los diccionarios de filtros se inicializan vacíos. Se poblarán dinámicamente.
+filtros_median = {}
+filtros_ema = {}
 
 try:
+    client.subscribe("ejemplo/sensores")
+    print("Suscrito al topic: ejemplo/sensores")
+    client.loop_start()  # Mantener la conexión MQTT activa
+
+
+
     while True:
         payload = {}
         for sensor_name, sensor in sensores.items():
             val = sensor.get()
-            if sensor_name == 'desplazamiento' and isinstance(val, dict):
-                med = {k: filtros_median[sensor_name].filter(val.get(k)) for k in COMP_DESPL}
-                payload[sensor_name] = {k: filtros_ema[sensor_name].filter(med[k]) for k in COMP_DESPL}
-            elif sensor_name == 'inclinacion' and isinstance(val, dict):
-                med = {k: filtros_median[sensor_name].filter(val.get(k)) for k in COMP_INCL}
-                payload[sensor_name] = {k: filtros_ema[sensor_name].filter(med[k]) for k in COMP_INCL}
-            elif isinstance(val, dict):
-                med = {k: filtros_median[sensor_name].filter(val[k]) for k in val}
-                payload[sensor_name] = {k: filtros_ema[sensor_name].filter(med[k]) for k in val}
+            if val is None:
+                continue  # Omite el sensor si no hay lectura válida
+
+            if isinstance(val, dict):
+                # Para sensores con múltiples valores (diccionarios)
+                if sensor_name not in filtros_median:
+                    # Inicialización perezosa: crea un diccionario de filtros para cada componente
+                    print(f"INFO: Creando filtros para el sensor multicomponente '{sensor_name}'")
+                    filtros_median[sensor_name] = {k: MedianFilter(5) for k in val}
+                    filtros_ema[sensor_name] = {k: EMAFilter(0.85) for k in val}
+
+                # Aplica el filtro correcto a cada componente individualmente
+                med_dict = {k: filtros_median[sensor_name][k].filter(v) for k, v in val.items()}
+                payload[sensor_name] = {k: filtros_ema[sensor_name][k].filter(v) for k, v in med_dict.items()}
             else:
-                med = filtros_median[sensor_name].filter(val)
-                payload[sensor_name] = filtros_ema[sensor_name].filter(med)
-        print(payload)
-        client.publish(TOPIC, str(payload))
-        client.loop_start() # Mantener la conexión MQTT activa
-        #time.sleep(1)
+                # Para sensores de un solo valor
+                if sensor_name not in filtros_median:
+                    # Inicialización perezosa: crea una única instancia de filtro
+                    print(f"INFO: Creando filtros para el sensor '{sensor_name}'")
+                    filtros_median[sensor_name] = MedianFilter(5)
+                    filtros_ema[sensor_name] = EMAFilter(0.85)
+
+                med_val = filtros_median[sensor_name].filter(val)
+                payload[sensor_name] = filtros_ema[sensor_name].filter(med_val)
+
+        print("Payload actual:", payload)  # Imprime el payload con los valores de los sensores
+        client.publish(TOPIC, str(payload))  # Publica los datos filtrados
+       # time.sleep(0.5)
+
 except KeyboardInterrupt:
     print("\nFinalizando medición y limpiando GPIO...")
     GPIO.cleanup()
-
+finally:
+    GPIO.cleanup()

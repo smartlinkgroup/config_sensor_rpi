@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 class Vibracion:
-    def __init__(self, pin, vmin, vmax, measure_time=2):
+    def __init__(self, pin, vmin, vmax, measure_time):
         self.pin = pin
         self.vmin = vmin
         self.vmax = vmax

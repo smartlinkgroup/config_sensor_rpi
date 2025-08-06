@@ -29,9 +29,9 @@ class MedianFilter:
         values_sorted = sorted(values)
         mid = len(values_sorted) // 2
         if len(values_sorted) % 2 == 1:
-            return values_sorted[mid]
+            return int(values_sorted[mid])
         else:
-            return (values_sorted[mid - 1] + values_sorted[mid]) / 2
+            return int((values_sorted[mid - 1] + values_sorted[mid]) / 2)
 
 class EMAFilter:
     def __init__(self, alpha):
@@ -42,4 +42,4 @@ class EMAFilter:
             self.low_pass_filter = value
         else:
             self.low_pass_filter = self.alpha * value + (1 - self.alpha) * self.low_pass_filter
-        return self.low_pass_filter
+        return int(self.low_pass_filter)

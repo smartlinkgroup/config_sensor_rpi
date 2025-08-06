@@ -22,4 +22,4 @@ class Temperatura:
                 return self.temp
             else:
                 return None
-
+            

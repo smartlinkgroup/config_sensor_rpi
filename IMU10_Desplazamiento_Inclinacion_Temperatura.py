@@ -10,7 +10,7 @@ class IMU:
         self.imu.setSlerpPower(0.02)
         self.imu.setGyroEnable(True)
         self.imu.setAccelEnable(True)
-        self.imu.setCompassEnable(True)
+        self.imu.setCompassEnable(False)
 
     def read(self):
         if self.imu.IMURead():
@@ -29,7 +29,7 @@ class Desplazamiento:
         self.imu.setSlerpPower(0.02)
         self.imu.setGyroEnable(True)
         self.imu.setAccelEnable(True)
-        self.imu.setCompassEnable(True)
+        self.imu.setCompassEnable(False)
 
     def get(self):
         if self.imu.IMURead():
@@ -37,9 +37,9 @@ class Desplazamiento:
             if "accel" in data:
                 ax, ay, az = data["accel"]
                 return {
-                    'ax': min(max(self.dmin, ax), self.dmax),
-                    'ay': min(max(self.dmin, ay), self.dmax),
-                    'az': min(max(self.dmin, az), self.dmax)
+                    'ax': ax,
+                    'ay': ay,
+                    'az': az
                 }
         return None
 
@@ -54,7 +54,7 @@ class Inclinacion:
         self.imu.setSlerpPower(0.02)
         self.imu.setGyroEnable(True)
         self.imu.setAccelEnable(True)
-        self.imu.setCompassEnable(True)
+        self.imu.setCompassEnable(False)
 
     def get(self):
         if self.imu.IMURead():
@@ -62,9 +62,9 @@ class Inclinacion:
             if "fusionPose" in data:
                 roll, pitch, yaw = data["fusionPose"]
                 return {
-                    'roll': min(max(self.imin, roll), self.imax),
-                    'pitch': min(max(self.imin, pitch), self.imax),
-                    'yaw': min(max(self.imin, yaw), self.imax)
+                    'roll': int(roll * 180 / 3.14159),
+                    'pitch': int(pitch * 180 / 3.14159),
+                    'yaw': int(yaw * 180 / 3.14159)
                 }
         return None
 
@@ -79,12 +79,12 @@ class TemperaturaAmbiente:
         self.imu.setSlerpPower(0.02)
         self.imu.setGyroEnable(True)
         self.imu.setAccelEnable(True)
-        self.imu.setCompassEnable(True)
+        self.imu.setCompassEnable(False)
 
     def get(self):
         if self.imu.IMURead():
             data = self.imu.getIMUData()
             if "temperature" in data:
                 temp = data["temperature"]
-                return min(max(self.tmin, temp), self.tmax)
+                return temp
         return None
