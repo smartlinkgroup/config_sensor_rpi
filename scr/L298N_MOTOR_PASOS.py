@@ -15,8 +15,8 @@ class StepperMotor:
             GPIO.setup(pin, GPIO.OUT)
 
         self.sequence = [
-            [1, 0, 0, 0], [1, 1, 0, 0], [0, 1, 0, 0], [0, 1, 1, 0],
-            [0, 0, 1, 0], [0, 0, 1, 1], [0, 0, 0, 1], [1, 0, 0, 1]
+            [1, 0, 1, 0],
+        
         ]
         self.sequence_index = 0
         self.target_steps = 0
@@ -25,7 +25,8 @@ class StepperMotor:
         self.direction = 1
 
         self.deg_per_step = 0.087890625
-        self.steps_per_revolution = int(360 / self.deg_per_step)
+        self.steps_per_revolution = 4096
+
 
     def set_step(self, w1, w2, w3, w4):
         GPIO.output(self.pins[0], w1)
@@ -64,34 +65,3 @@ class StepperMotor:
         GPIO.cleanup()
         print('-> GPIO limpiados')
 
-if __name__ == '__main__':
-    # Define GPIO pins for L298N driver
-    IN1 = 12
-    IN2 = 16
-    IN3 = 20
-    IN4 = 21
-
-    motor = StepperMotor(IN1, IN2, IN3, IN4)
-    motor.set_rpm(700)
-
-    try:
-        print("Moving forward one revolution")
-        motor.move(motor.steps_per_revolution * len(motor.sequence))
-        while motor.is_busy():
-            motor.update()
-            # In a real non-blocking application, you would do other tasks here.
-            # For this example, we'll just spin.
-
-        time.sleep(1) # Pause between movements
-
-        print("Moving backward one revolution")
-        motor.move(-motor.steps_per_revolution * len(motor.sequence))
-        while motor.is_busy():
-            motor.update()
-            # In a real non-blocking application, you would do other tasks here.
-            # For this example, we'll just spin.
-
-    except KeyboardInterrupt:
-        print('-> Interrupcion por teclado')
-    finally:
-        motor.cleanup()

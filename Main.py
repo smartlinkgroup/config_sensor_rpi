@@ -37,7 +37,7 @@ SENSORES = {
     'temperatura': (Temperatura, {'spi': spi_bus, 'cs': cs_temp}),
     'desplazamiento': (Desplazamiento, {}),
     'inclinacion': (Inclinacion, {}),
-    'motor': (StepperMotor, {'in1': 12, 'in2': 16, 'in3': 20, 'in4': 21}),
+        'motor': (StepperMotor, {'in1': 22, 'in2': 23, 'in3': 24, 'in4': 27}),
 }
 
 WINDOW = 5
@@ -64,6 +64,12 @@ def main():
 
     mqtt_client.set_message_handler(motor_message_handler)
     mqtt_client.start()
+
+    # Motor demo: Move forward 2 steps at 1000 RPM
+    motor = sensores['motor']
+    motor.set_rpm(1)
+    print("Motor demo: Moving forward 2 steps.")
+    motor.move(110000) # Reduced steps to 2
 
     try:
         while True:
@@ -110,6 +116,10 @@ def main():
         mqtt_client.stop()
         GPIO.cleanup()
         print("GPIO limpiado y programa terminado.")
+
+if __name__ == "__main__":
+    main()
+
 
 if __name__ == "__main__":
     main()
