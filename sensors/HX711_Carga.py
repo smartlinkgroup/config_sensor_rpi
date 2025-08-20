@@ -1,4 +1,4 @@
-from hx711v0_5_1 import HX711
+from lib.hx711v0_5_1 import HX711
 
 class Carga:
 
