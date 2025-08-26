@@ -2,7 +2,7 @@ from lib.hx711v0_5_1 import HX711
 
 class Carga:
 
-    def __init__(self, pins, cmin, cmax, reference_unit=205):
+    def __init__(self, pins, cmin, cmax, reference_unit=255):
         self.pins = pins
         self.cmin = cmin
         self.cmax = cmax

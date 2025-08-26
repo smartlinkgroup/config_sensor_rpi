@@ -57,9 +57,9 @@ class MedianFilter:
             # Después de la limpieza, los heaps podrían estar vacíos si se eliminaron todos los elementos
             if not self.max_heap:
                 return 0 # O manejar como un error/caso especial
-            return (-self.max_heap[0] + self.min_heap[0]) / 2
+            return int((-self.max_heap[0] + self.min_heap[0]) / 2)
         else:
-            return -self.max_heap[0]
+            return int(-self.max_heap[0])
 
 class EMAFilter:
     def __init__(self, alpha):
@@ -70,4 +70,4 @@ class EMAFilter:
             self.low_pass_filter = value
         else:
             self.low_pass_filter = self.alpha * value + (1 - self.alpha) * self.low_pass_filter
-        return self.low_pass_filter
+        return int(self.low_pass_filter)

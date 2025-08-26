@@ -18,27 +18,42 @@ class Vibracion:
     def get(self):
         # Iniciar medición si no ha comenzado
         if self._start_time is None or self._finished:
+            print("--- STARTING NEW VIBRATION MEASUREMENT ---")
             self._start_time = time.time()
             self._c1 = 0
             self._last_state = 1
             self._finished = False
             self.vibracion = 0
+
         elapsed = time.time() - self._start_time
+        
         if elapsed < self.measure_time:
             state = GPIO.input(self.pin)
+            # --- DEBUGGING PRINTS ---
+            # Print the state of the pin and the counter to see what's happening.
+            # We expect state to be 1 at rest, and 0 when vibration is detected.
+            # We expect _c1 to increment on each vibration.
+            print(f"Time: {elapsed:.2f}s, Pin State: {state}, Last State: {self._last_state}, Vibration Count: {self._c1}")
+            # --- END DEBUGGING PRINTS ---
             if state == 0 and self._last_state == 1:
                 self._c1 += 1
-            self._last_state = state    
-            # Calcular vibración parcial
-            vib_raw = int(self._c1 / 40 * 100)
-            vib_esc = min(max(self.vmin, vib_raw), self.vmax)
-            self.vibracion = vib_esc
+                print(f"*** VIBRATION DETECTED! New count: {self._c1} ***")
+            self._last_state = state
         else:
             if not self._finished:
-                vib_raw = int(self._c1 / 40 * 100)
-                vib_esc = min(max(self.vmin, vib_raw), self.vmax)
-                self.vibracion = vib_esc
+                print(f"--- MEASUREMENT FINISHED --- Final count: {self._c1}")
+                # Measurement cycle is over.
                 self._finished = True
+
+        # The scaling factor of 40 in the original code was likely too high,
+        # causing low readings. A smaller value like 10 will make the sensor
+        # more sensitive. This factor represents the number of vibration events
+        # detected in 'measure_time' that would correspond to a 100% reading.
+        scaling_factor = 10
+        vib_raw = int((self._c1 / scaling_factor) * 100)
+        vib_esc = min(max(self.vmin, vib_raw), self.vmax)
+        self.vibracion = vib_esc
+        
         return self.vibracion
 
     def cleanup(self):

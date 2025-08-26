@@ -4,10 +4,11 @@ import busio
 import board
 import digitalio
 import json
+import re
 
-from scr.Digital_Filters import MedianFilter, EMAFilter
-from scr.mqtt_client import MQTTClient
-from scr.L298N_MOTOR_PASOS import StepperMotor
+from src.Digital_Filters import MedianFilter
+from src.mqtt_client import MQTTClient
+from src.L298N_MOTOR_SIMPLE import SimpleDCMotor
 
 from sensors.HC020K_Emboladas import Emboladas
 from sensors.HK1100C_Presion import Presion
@@ -30,53 +31,71 @@ cs_temp = digitalio.DigitalInOut(board.D25)
 SENSORES = {
     'rpm': (Emboladas, {'pin': 12, 'emin': 0, 'emax': 20, 'muestras': 20, 'intervalo': 0.1}),
     'carga': (Carga, {'pins': {'data': 21, 'clk': 20}, 'cmin': 0, 'cmax': 5000}),
-    'vibracion': (Vibracion, {'pin': 17, 'vmin': 0, 'vmax': 100,  'measure_time': 100}),
+    'vibracion': (Vibracion, {'pin': 17, 'vmin': 0, 'vmax': 100,  'measure_time': 10}),
     'caudal': (Caudal, {'pin': 26, 'qmin': 0, 'qmax': 100}),
-    'gas': (Gas, {'i2c': i2c_bus, 'channel': 0, 'gmin': 0, 'gmax': 1000, 'r0': 10000, 'rl': 10000}),
-    'presion': (Presion, {'i2c': i2c_bus, 'channel': 1, 'pmin': 0, 'pmax': 100}),
+    'gas': (Gas, {'i2c': i2c_bus, 'channel': 1, 'gmin': 0, 'gmax': 1000, 'r0': 10000, 'rl': 10000}),
+    'presion': (Presion, {'i2c': i2c_bus, 'channel': 0, 'pmin': 0, 'pmax': 100}),
     'temperatura': (Temperatura, {'spi': spi_bus, 'cs': cs_temp}),
     'desplazamiento': (Desplazamiento, {}),
     'inclinacion': (Inclinacion, {}),
-        'motor': (StepperMotor, {'in1': 22, 'in2': 23, 'in3': 24, 'in4': 27}),
+    'motor': (SimpleDCMotor,{'in1': 24, 'in2': 23, 'enable': 27, 'frequency': 1000})
 }
 
-WINDOW = 5
-ALPHA = 0.85
+WINDOW = 3
 
 sensores = {k: v[0](**v[1]) for k, v in SENSORES.items()}
 filtros_median = {}
-filtros_ema = {}
 
 def main():
+
     mqtt_client = MQTTClient()
 
-    def motor_message_handler(topic, payload):
+    def motor_control_handler(topic, payload):
         try:
-            data = json.loads(payload.decode())
-            if 'rpm' in data:
-                sensores['motor'].set_rpm(data['rpm'])
-            if 'steps' in data:
-                sensores['motor'].move(data['steps'])
-        except json.JSONDecodeError:
-            print(f"Error decoding JSON: {payload.decode()}")
-        except Exception as e:
-            print(f"Error handling motor message: {e}")
+            payload_str = payload.decode()
+            # The payload is not a valid JSON, so we parse it manually
+            # It looks like this: { "onoff": 1 "velocidad": 50 "inversion": 0 }
+            # It is missing commas.
+            
+            # Clean up the string
+            payload_str = payload_str.strip().replace('{', '').replace('}', '')
+            
+            # Use regex to find key-value pairs
+            pattern = re.compile(r'"(\w+)"\s*:\s*(\d+)')
+            matches = pattern.findall(payload_str)
+            
+            data = {key: int(value) for key, value in matches}
+            
+            control_data = {}
+            if 'onoff' in data:
+                control_data['on_off'] = bool(data['onoff'])
+            if 'velocidad' in data:
+                control_data['speed'] = data['velocidad']
+            if 'inversion' in data:
+                control_data['inversion'] = bool(data['inversion'])
 
-    mqtt_client.set_message_handler(motor_message_handler)
+            if control_data:
+                sensores['motor'].control_motor(control_data)
+
+        except Exception as e:
+            print(f"Error handling motor message from {topic}: {e}")
+
+    mqtt_client.set_message_handler(motor_control_handler)
     mqtt_client.start()
 
-    # Motor demo: Move forward 2 steps at 1000 RPM
-    motor = sensores['motor']
-    motor.set_rpm(1)
-    print("Motor demo: Moving forward 2 steps.")
-    motor.move(110000) # Reduced steps to 2
+    # --- Motor Control Example ---
+    print("Starting motor...")
+    #sensores['motor'].control_motor({'on_off': 1, 'speed': 50, 'inversion': False})
+    
 
     try:
         while True:
+               
+          
             payload = {}
             for sensor_name, sensor in sensores.items():
                 if sensor_name == 'motor':
-                    sensor.update()
+                    
                     continue
 
                 val = sensor.get()
@@ -88,23 +107,19 @@ def main():
                     if sensor_name not in filtros_median:
                         print(f"INFO: Creando filtros para el sensor multicomponente '{sensor_name}'")
                         filtros_median[sensor_name] = {k: MedianFilter(WINDOW) for k in val}
-                        filtros_ema[sensor_name] = {k: EMAFilter(ALPHA) for k in val}
 
-                    med_dict = {k: filtros_median[sensor_name][k].filter(v) for k, v in val.items()}
-                    payload[sensor_name] = {k: filtros_ema[sensor_name][k].filter(v) for k, v in med_dict.items()}
+                    payload[sensor_name] = {k: filtros_median[sensor_name][k].filter(v) for k, v in val.items()}
                 else:
                     if sensor_name not in filtros_median:
                         print(f"INFO: Creando filtros para el sensor '{sensor_name}'")
                         filtros_median[sensor_name] = MedianFilter(WINDOW)
-                        filtros_ema[sensor_name] = EMAFilter(ALPHA)
 
-                    med_val = filtros_median[sensor_name].filter(val)
-                    payload[sensor_name] = filtros_ema[sensor_name].filter(med_val)
+                    payload[sensor_name] = filtros_median[sensor_name].filter(val)
 
             if payload:
                 print(payload)
                 mqtt_client.publish(payload)
-            time.sleep(0.01) # Reduced sleep time for better motor responsiveness
+            time.sleep(0.001) # Sleep time can be adjusted
 
     except KeyboardInterrupt:
         print("\nFinalizando medición y limpiando GPIO...")
@@ -112,14 +127,9 @@ def main():
         for sensor in sensores.values():
             if hasattr(sensor, 'cleanup'):
                 sensor.cleanup()
-
         mqtt_client.stop()
         GPIO.cleanup()
         print("GPIO limpiado y programa terminado.")
-
-if __name__ == "__main__":
-    main()
-
 
 if __name__ == "__main__":
     main()

@@ -42,9 +42,6 @@ class Temperatura:
             self.cs_pin.value = False
             time.sleep(0.01) # Pequeña pausa para que el sensor se estabilice
             self.spi_device.readinto(self._buf)
-            # --- Diagnóstico ---
-            # Imprime los bytes crudos para ver qué estamos recibiendo del sensor.
-            print(f"DEBUG: Bytes crudos recibidos: {list(self._buf)}")
             self.cs_pin.value = True
         finally:
             self.spi_device.unlock()

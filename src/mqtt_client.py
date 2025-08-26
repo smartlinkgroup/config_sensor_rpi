@@ -5,7 +5,7 @@ import json
 BROKER = "192.168.68.10"
 PORT = 1883
 TOPIC_PUB = "sensores"
-TOPIC_SUB = "ejemplo/sensores"
+TOPIC_SUB = "PLC_RS"
 USERNAME = "lift-adm"
 PASSWORD = "lift2025"
 
