@@ -65,10 +65,3 @@ class SimpleDCMotor:
                 self.forward(data.get('speed', 100))
         elif 'speed' in data:
             self.set_speed(data['speed'])
-
-    def cleanup(self):
-        """Cleanup GPIO resources"""
-        self.pwm.stop()
-        # We should not cleanup all GPIOs here, as other sensors might be using them.
-        # GPIO.cleanup([self.in1, self.in2, self.enable]) 
-        print("Motor GPIO cleaned up")

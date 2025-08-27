@@ -29,12 +29,7 @@ class Vibracion:
         
         if elapsed < self.measure_time:
             state = GPIO.input(self.pin)
-            # --- DEBUGGING PRINTS ---
-            # Print the state of the pin and the counter to see what's happening.
-            # We expect state to be 1 at rest, and 0 when vibration is detected.
-            # We expect _c1 to increment on each vibration.
-            print(f"Time: {elapsed:.2f}s, Pin State: {state}, Last State: {self._last_state}, Vibration Count: {self._c1}")
-            # --- END DEBUGGING PRINTS ---
+           
             if state == 0 and self._last_state == 1:
                 self._c1 += 1
                 print(f"*** VIBRATION DETECTED! New count: {self._c1} ***")
