@@ -1,5 +1,6 @@
 import paho.mqtt.client as mqtt
 import json
+from src.L298N_MOTOR_SIMPLE import Motor  # Add this import if 'motor' is a module in your project
 
 # Configuración MQTT
 BROKER = "192.168.68.10"
@@ -38,6 +39,7 @@ class MQTTClient:
         print(f"Mensaje recibido en el topic {msg.topic}: {str(msg.payload.decode())}")
         if self.message_handler:
             self.message_handler(msg.topic, msg.payload)
+
 
     def on_subscribe(self, client, userdata, mid, granted_qos):
         print(f"Suscrito a {self.topic_sub} con QoS: {granted_qos[0]}")

@@ -50,7 +50,7 @@ class Gas:
                 'NH4': min(max(self.gmin, 102.2 * (ratio ** -2.473)), self.gmax),
                 'Aceton': min(max(self.gmin, 34.668 * (ratio ** -3.369)), self.gmax)
             }
-            return self.gases
+            return  ratio 
         except Exception as e:
             print(f"Error al leer el sensor de gas: {e}")
             return None

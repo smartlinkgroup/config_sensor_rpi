@@ -3,7 +3,7 @@ import math
 import time
 import numpy as np
 
-class Desplazamiento:
+class DesplazamientoIMU:
     def __init__(self, settings_file="RTIMULib", imu_instance=None):
         if imu_instance:
             self.imu = imu_instance
@@ -108,24 +108,7 @@ class Inclinacion:
         if self.imu.IMURead():
             data = self.imu.getIMUData()
             if data.get("fusionPoseValid"):
-                roll, pitch, yaw = data["fusionPose"]
-                return {
-                    'roll': int(math.degrees(roll)),
-                    'pitch': int(math.degrees(pitch)),
-                    'yaw': int(math.degrees(yaw))
-                }
+                _, pitch, _ = data["fusionPose"]
+                return int(math.degrees(pitch))
         return None
 
-class TemperaturaAmbiente:
-    def __init__(self, settings_file="RTIMULib"):
-        self.settings = RTIMU.Settings(settings_file)
-        self.imu = RTIMU.RTIMU(self.settings)
-        if not self.imu.IMUInit():
-            raise RuntimeError("IMU no detectado")
-
-    def get(self):
-        if self.imu.IMURead():
-            data = self.imu.getIMUData()
-            if "temperature" in data:
-                return data["temperature"]
-        return None
