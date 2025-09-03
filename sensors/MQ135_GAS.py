@@ -42,15 +42,9 @@ class Gas:
 
             rs = (self.vref - v) * self.rl / v
             ratio = rs / self.r0 / 3.6 # Factor de calibración del código original
-            self.gases = {
-                'CO': min(max(self.gmin, 605.18 * (ratio ** -3.937)), self.gmax),
-                'Alcohol': min(max(self.gmin, 77.255 * (ratio ** -3.18)), self.gmax),
-                'CO2': min(max(self.gmin, 110.47 * (ratio ** -2.862) + 400), self.gmax),
-                'Toluen': min(max(self.gmin, 44.947 * (ratio ** -3.445)), self.gmax),
-                'NH4': min(max(self.gmin, 102.2 * (ratio ** -2.473)), self.gmax),
-                'Aceton': min(max(self.gmin, 34.668 * (ratio ** -3.369)), self.gmax)
-            }
-            return  ratio 
+            self.gases = min(max(self.gmin, 110.47 * (ratio ** -2.862) + 400), self.gmax)
+                
+            return self.gases
         except Exception as e:
             print(f"Error al leer el sensor de gas: {e}")
             return None
