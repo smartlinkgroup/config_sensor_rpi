@@ -103,12 +103,26 @@ class Inclinacion:
             self.imu.setGyroEnable(True)
             self.imu.setAccelEnable(True)
             self.imu.setCompassEnable(False)
+        
+        self.failure_count = 0
+        self.max_failures = 5
 
     def get(self):
         if self.imu.IMURead():
+            self.failure_count = 0
             data = self.imu.getIMUData()
             if data.get("fusionPoseValid"):
                 _, pitch, _ = data["fusionPose"]
                 return int(math.degrees(pitch))
+        else:
+            self.failure_count += 1
+            print(f"Fallo de lectura del IMU: {self.failure_count}/{self.max_failures}")
+            if self.failure_count > self.max_failures:
+                print("Intentando reinicializar el IMU...")
+                if self.imu.IMUInit():
+                    print("IMU reinicializado con éxito.")
+                    self.failure_count = 0
+                else:
+                    print("Fallo al reinicializar el IMU.")
         return None
 

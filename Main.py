@@ -29,7 +29,7 @@ encoder = Encoder(pin=12)
 # --- Sensor Definitions ---
 SENSORES = {
     'rpm': (Emboladas, {'encoder': encoder, 'pulsos_por_rev': 20}),
-    'desplazamiento': (Desplazamiento, {'encoder': encoder, 'dmax': 5, 'muestras': 20}),
+    'desplazamiento': (Desplazamiento, {'encoder': encoder, 'dmax': 3, 'muestras': 20}),
     'carga': (Carga, {'pins': {'data': 21, 'clk': 20}, 'cmin': 0, 'cmax': 5000}),
     'vibracion': (Vibracion, {'pin': 17, 'vmin': 0, 'vmax': 100, 'measure_time': 10}),
     'caudal': (Caudal, {'pin': 26, 'qmin': 0, 'qmax': 100}),
@@ -39,7 +39,7 @@ SENSORES = {
     'inclinacion': (Inclinacion, {})
 }
 
-WINDOW = 3
+WINDOW = 5
 
 # Instantiate sensors
 sensores = {k: v[0](**v[1]) for k, v in SENSORES.items()}
@@ -47,6 +47,7 @@ filtros_median = {}
 
 def main():
     desplazamiento_val = 0
+    inclinacion = 0
 
     # --- Object Initialization ---
     mqtt_client = MQTTClient()
@@ -61,7 +62,6 @@ def main():
         last_values = {}
         while True:
             # 1. Update motor state
-            motor_control.actualizar()
 
             # 2. Process all sensors
             payload = {}
@@ -74,25 +74,32 @@ def main():
                 if val is None:
                     continue
                 
-                if sensor_name == 'desplazamiento':
-                    desplazamiento_val = val
+
 
                 # Apply filter and add to payload
                 if isinstance(val, dict):
                     payload[sensor_name] = {k: int(v) for k, v in val.items()}
-                elif sensor_name == 'desplazamiento':
+                elif sensor_name == 'desplazamiento' or sensor_name == 'inclinacion':
                     payload[sensor_name] = int(val)
                 else:
                     if sensor_name not in filtros_median:
                         filtros_median[sensor_name] = MedianFilter(WINDOW)
                     payload[sensor_name] = filtros_median[sensor_name].filter(val)
+
+            # Get latest sensor values from payload
+            desplazamiento = payload.get('desplazamiento')
+            inclinacion = payload.get('inclinacion')
+            carga = payload.get('carga')
+            
+
+            motor_control.actualizar(inclinacion,carga)
             
             # 3. Publish sensor data
             if payload:
                 print(payload)
                 mqtt_client.publish(payload)
 
-            time.sleep(0.00001)
+            time.sleep(0.0001)
 
     except KeyboardInterrupt:
         print("\nFinalizando medición y limpiando GPIO...")
